@@ -1,0 +1,11 @@
+B4J/Objects
+B4J/objects
+B4J/AutoBackups
+B4J/autobackups
+Python/build/
+Python/Build/
+Python/*.spec
+Python/__pycache__/
+Python/*.pyc
+Python/PushNotification.exe
+Python/pushnotification.exe

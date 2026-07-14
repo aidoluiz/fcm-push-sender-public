@@ -1,0 +1,320 @@
+﻿AppType=JavaFX
+Build1=Default,b4j.example
+File1=MainPage.bjl
+FileGroup1=New Group
+Group=Default Group
+Library1=b4xpages
+Library2=jcore
+Library3=jfx
+Library4=jokhttputils2
+Library5=json
+Module1=|relative|..\B4XMainPage
+NumberOfFiles=1
+NumberOfLibraries=5
+NumberOfModules=1
+Version=10.2
+@EndOfDesignText@
+
+#Region  Project Attributes
+	#MergeLibraries: True
+	#MainFormWidth: 1080
+	#MainFormHeight: 760
+#End Region
+'Version: 3.00 - FCM notification desktop sender
+
+#AdditionalJar: google-auth-library-oauth2-http-1.18.0.jar
+#AdditionalJar: google-auth-library-credentials-1.18.0.jar
+#AdditionalJar: guava-23.0.jar
+#AdditionalJar: google-http-client-1.43.3.jar
+#AdditionalJar: google-http-client-gson-1.43.3.jar
+#AdditionalJar: gson-2.10.1.jar
+#AdditionalJar: opencensus-api-0.31.1.jar
+#AdditionalJar: opencensus-contrib-http-util-0.31.1.jar
+#AdditionalJar: grpc-context-1.27.2.jar
+#PackagerProperty: AdditionalModuleInfoString = uses com.google.auth.http.HttpTransportFactory;
+
+Sub Process_Globals
+	Private MainForm As Form
+	Private cmbApp As ComboBox
+	Private txtTopic As TextField
+	Private txtTitle As TextField
+	Private txtMessage As TextArea
+	Private cmbPriority As ComboBox
+	Private cmbBadge As ComboBox
+	Private chkSound As CheckBox
+	Private btnSend As Button
+	Private lblStatus As Label
+	Private lblProject As Label
+	Private AppNames As List
+	Private ProjectIds As List
+	Private ServiceAccountPaths As List
+	Private Platforms As List
+End Sub
+
+Sub AppStart (Form1 As Form, Args() As String)
+	MainForm = Form1
+	MainForm.Title = "FCM Push Sender"
+	SetupConfigs
+	CreateInterface
+	AppSelected
+	MainForm.Show
+End Sub
+
+Private Sub SetupConfigs
+	AppNames.Initialize
+	ProjectIds.Initialize
+	ServiceAccountPaths.Initialize
+	Platforms.Initialize
+
+	'Each option contains the correct Firebase project and service key.
+	AddApp("Android · App1", "Android", "app1-firebase-project", "/path/to/service-account-app1.json")
+	AddApp("Android · App2", "Android", "app2-firebase-project", "/path/to/service-account-app2.json")
+	AddApp("iOS · App3", "iOS", "app3-firebase-project", "/path/to/service-account-app3.json")
+	AddApp("iOS · App4", "iOS", "app4-firebase-project", "/path/to/service-account-app4.json")
+End Sub
+
+Private Sub AddApp (Name As String, Platform As String, Project As String, ServiceKey As String)
+	AppNames.Add(Name)
+	Platforms.Add(Platform)
+	ProjectIds.Add(Project)
+	ServiceAccountPaths.Add(ServiceKey)
+End Sub
+
+Private Sub CreateInterface
+	MainForm.RootPane.Style = "-fx-background-color: #F3F6FB;"
+
+	Dim pnlHeader As Pane
+	pnlHeader.Initialize("")
+	pnlHeader.Style = "-fx-background-color: linear-gradient(to right, #14213D, #2456A6);"
+	MainForm.RootPane.AddNode(pnlHeader, 0, 0, 1080, 112)
+
+	AddText(pnlHeader, "FCM Push Sender", 38, 22, 500, 36, "-fx-text-fill: white; -fx-font-size: 26px; -fx-font-weight: bold;")
+	AddText(pnlHeader, "Send notifications to multiple apps without changing the code.", 40, 64, 720, 24, "-fx-text-fill: #D9E7FF; -fx-font-size: 14px;")
+
+	Dim pnlDestination As Pane
+	pnlDestination.Initialize("")
+	pnlDestination.Style = CardStyle
+	MainForm.RootPane.AddNode(pnlDestination, 30, 142, 330, 490)
+	AddText(pnlDestination, "DESTINATION", 24, 22, 200, 25, SectionTitleStyle)
+	AddText(pnlDestination, "App and Firebase configuration", 24, 50, 280, 20, HelpStyle)
+	AddText(pnlDestination, "App", 24, 92, 260, 20, FieldStyle)
+	
+	cmbApp.Initialize("cmbApp")
+	cmbApp.Style = ComboStyle
+	For Each Name As String In AppNames
+		cmbApp.Items.Add(Name)
+	Next
+	pnlDestination.AddNode(cmbApp, 24, 118, 282, 38)
+	
+	AddText(pnlDestination, "Firebase Project", 24, 184, 260, 20, FieldStyle)
+	lblProject.Initialize("")
+	lblProject.Style = "-fx-background-color: #EFF4FC; -fx-background-radius: 7; -fx-text-fill: #2456A6; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10 12 10 12;"
+	pnlDestination.AddNode(lblProject, 24, 210, 282, 42)
+	
+	AddText(pnlDestination, "Android Priority", 24, 282, 260, 20, FieldStyle)
+	cmbPriority.Initialize("")
+	cmbPriority.Style = ComboStyle
+	cmbPriority.Items.AddAll(Array As String("high", "normal"))
+	cmbPriority.SelectedIndex = 0
+	pnlDestination.AddNode(cmbPriority, 24, 308, 282, 38)
+	
+	AddText(pnlDestination, "Badge iOS (default 1 for background)", 24, 376, 260, 20, FieldStyle)
+	cmbBadge.Initialize("")
+	cmbBadge.Style = ComboStyle
+	cmbBadge.Items.AddAll(Array As String("0", "1", "2", "3", "4", "5"))
+	cmbBadge.SelectedIndex = 1
+	pnlDestination.AddNode(cmbBadge, 24, 402, 282, 38)
+	
+	chkSound.Initialize("")
+	chkSound.Text = "With alert sound"
+	chkSound.Style = "-fx-text-fill: #334155; -fx-font-size: 13px; -fx-font-weight: bold;"
+	chkSound.Checked = True
+	pnlDestination.AddNode(chkSound, 20, 454, 282, 30)
+	
+	AddText(pnlDestination, "On iOS the ios_ prefix is automatically applied to the topic.", 24, 490, 282, 30, "-fx-text-fill: #64748B; -fx-font-size: 11px; -fx-wrap-text: true;")
+	
+	Dim pnlMessage As Pane
+	pnlMessage.Initialize("")
+	pnlMessage.Style = CardStyle
+	MainForm.RootPane.AddNode(pnlMessage, 382, 142, 668, 490)
+	AddText(pnlMessage, "MESSAGE", 28, 22, 250, 25, SectionTitleStyle)
+	AddText(pnlMessage, "The fields below form the payload sent to FCM.", 28, 50, 450, 20, HelpStyle)
+	
+	AddText(pnlMessage, "Topic", 28, 92, 220, 20, FieldStyle)
+	txtTopic.Initialize("")
+	txtTopic.Style = InputStyle
+	txtTopic.Text = "teste12345"
+	pnlMessage.AddNode(txtTopic, 28, 118, 280, 38)
+	
+	AddText(pnlMessage, "Title", 328, 92, 280, 20, FieldStyle)
+	txtTitle.Initialize("")
+	txtTitle.Style = InputStyle
+	pnlMessage.AddNode(txtTitle, 328, 118, 312, 38)
+	
+	AddText(pnlMessage, "Message / HTML", 28, 184, 360, 20, FieldStyle)
+	txtMessage.Initialize("")
+	txtMessage.Style = "-fx-background-color: white; -fx-border-color: #CBD5E1; -fx-border-radius: 7; -fx-background-radius: 7; -fx-font-size: 14px; -fx-padding: 9;"
+	txtMessage.WrapText = True
+	pnlMessage.AddNode(txtMessage, 28, 210, 612, 170)
+	
+	btnSend.Initialize("btnSend")
+	btnSend.Text = "Send notification"
+	btnSend.Style = "-fx-background-color: #16A34A; -fx-background-radius: 7; -fx-text-fill: white; -fx-font-size: 15px; -fx-font-weight: bold; -fx-cursor: hand;"
+	pnlMessage.AddNode(btnSend, 28, 410, 260, 48)
+	
+	lblStatus.Initialize("")
+	lblStatus.Style = "-fx-text-fill: #475569; -fx-font-size: 13px; -fx-wrap-text: true;"
+	lblStatus.Text = "Ready to send."
+	pnlMessage.AddNode(lblStatus, 308, 414, 320, 44)
+	
+	AddText(MainForm.RootPane, "Tip: use the topic without the ios_ prefix for iOS apps.", 32, 674, 720, 22, "-fx-text-fill: #64748B; -fx-font-size: 13px;")
+	
+	'Selects the destination only after all screen controls exist.
+	cmbApp.SelectedIndex = 0
+End Sub
+
+Private Sub AddText (Parent As Pane, Text As String, Left As Double, Top As Double, Width As Double, Height As Double, Style As String)
+	Dim lbl As Label
+	lbl.Initialize("")
+	lbl.Text = Text
+	lbl.Style = Style
+	Parent.AddNode(lbl, Left, Top, Width, Height)
+End Sub
+
+Private Sub cmbApp_SelectedIndexChanged (Index As Int, Value As Object)
+	AppSelected
+End Sub
+
+Private Sub AppSelected
+	If cmbApp.SelectedIndex < 0 Then Return
+	Dim Index As Int = cmbApp.SelectedIndex
+	lblProject.Text = ProjectIds.Get(Index)
+	If Platforms.Get(Index) = "iOS" Then
+		cmbPriority.Enabled = False
+		cmbBadge.Enabled = True
+	Else
+		cmbPriority.Enabled = True
+		cmbBadge.Enabled = False
+	End If
+End Sub
+
+Private Sub btnSend_Action
+	Dim Topic As String = txtTopic.Text.Trim
+	Dim Title As String = txtTitle.Text.Trim
+	Dim Message As String = txtMessage.Text
+	If Topic = "" Or Title = "" Or Message.Trim = "" Then
+		UpdateStatus("Fill in topic, title and message before sending.", False)
+		Return
+	End If
+
+	btnSend.Enabled = False
+	UpdateStatus("Sending notification to " & cmbApp.Value & "...", True)
+	Wait For (SendNotification(Topic, Title, Message)) Complete (Result As Map)
+	btnSend.Enabled = True
+	UpdateStatus(Result.Get("text"), Result.Get("success"))
+End Sub
+
+Private Sub SendNotification (Topic As String, Title As String, Message As String) As ResumableSub
+	Dim Index As Int = cmbApp.SelectedIndex
+	Dim Project As String = ProjectIds.Get(Index)
+	Dim ServiceKey As String = ServiceAccountPaths.Get(Index)
+	Dim Platform As String = Platforms.Get(Index)
+	Dim WithSound As Boolean = chkSound.Checked
+	Dim Token As String
+	Try
+		Token = GetTokenValue(ServiceKey)
+	Catch
+		Return CreateMap("success": False, "text": "Could not read the service key: " & LastException.Message)
+	End Try
+
+	Wait For (SendPushMessage(Project, Platform, Topic, Title, Message, Token, WithSound)) Complete (Result As Map)
+	Return Result
+End Sub
+
+Private Sub SendPushMessage (Project As String, Platform As String, Topic As String, Title As String, Message As String, Token As String, WithSound As Boolean) As ResumableSub
+	Dim FcmTopic As String = Topic
+	Dim Data As Map = CreateMap("title": Title, "body": Message)
+	Dim MsgPayload As Map = CreateMap("topic": FcmTopic, "data": Data)
+	If Platform = "iOS" Then
+		FcmTopic = "ios_" & Topic
+		MsgPayload.Put("topic", FcmTopic)
+		Dim Badge As Int = cmbBadge.SelectedIndex
+		Dim IosAlert As Map = CreateMap("title": Title, "body": Message)
+		MsgPayload.Put("notification", IosAlert)
+		Dim Aps As Map = CreateMap("badge": Badge)
+		If WithSound Then
+			Aps.Put("sound", "default")
+		End If
+		MsgPayload.Put("apns", CreateMap("headers": CreateMap("apns-priority": "10"), _
+			"payload": CreateMap("aps": Aps)))
+	Else
+		Dim AndroidConfig As Map = CreateMap("priority": cmbPriority.Value)
+		If WithSound Then
+			AndroidConfig.Put("notification", CreateMap("sound": "default"))
+		End If
+		MsgPayload.Put("android", AndroidConfig)
+	End If
+
+	Dim Jg As JSONGenerator
+	Jg.Initialize(CreateMap("message": MsgPayload))
+	Log(Jg.ToPrettyString(4))
+	Dim Job As HttpJob
+	Job.Initialize("SendFCM", Me)
+	Job.PostString($"https://fcm.googleapis.com/v1/projects/${Project}/messages:send"$, Jg.ToString)
+	Job.GetRequest.SetContentType("application/json;charset=UTF-8")
+	Job.GetRequest.SetHeader("Authorization", "Bearer " & Token)
+	Wait For (Job) JobDone(Job As HttpJob)
+	Dim Result As Map
+	If Job.Success Then
+		Dim Response As String = Job.GetString
+		Log(Response)
+		Result = CreateMap("success": True, "text": "Notification sent to " & FcmTopic & ".")
+	Else
+		Log(Job.ErrorMessage)
+		Result = CreateMap("success": False, "text": "FCM failed: " & Job.ErrorMessage)
+	End If
+	Job.Release
+	Return Result
+End Sub
+
+Private Sub UpdateStatus (Text As String, Success As Boolean)
+	lblStatus.Text = Text
+	If Success Then
+		lblStatus.Style = "-fx-text-fill: #15803D; -fx-font-size: 13px; -fx-font-weight: bold; -fx-wrap-text: true;"
+	Else
+		lblStatus.Style = "-fx-text-fill: #B91C1C; -fx-font-size: 13px; -fx-font-weight: bold; -fx-wrap-text: true;"
+	End If
+End Sub
+
+Private Sub GetTokenValue (FilePath As String) As String
+	Dim GoogleCredentials As JavaObject
+	GoogleCredentials.InitializeStatic("com.google.auth.oauth2.GoogleCredentials")
+	Dim Credentials As JavaObject = GoogleCredentials.RunMethodJO("fromStream", Array(File.OpenInput(FilePath, ""))) _
+		.RunMethod("createScoped", Array(Array As String("https://www.googleapis.com/auth/firebase.messaging")))
+	Credentials.RunMethod("refreshIfExpired", Null)
+	Return Credentials.RunMethodJO("getAccessToken", Null).RunMethod("getTokenValue", Null)
+End Sub
+
+Private Sub CardStyle As String
+	Return "-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #E2E8F0; -fx-border-radius: 12;"
+End Sub
+
+Private Sub SectionTitleStyle As String
+	Return "-fx-text-fill: #14213D; -fx-font-size: 15px; -fx-font-weight: bold;"
+End Sub
+
+Private Sub HelpStyle As String
+	Return "-fx-text-fill: #64748B; -fx-font-size: 12px;"
+End Sub
+
+Private Sub FieldStyle As String
+	Return "-fx-text-fill: #334155; -fx-font-size: 13px; -fx-font-weight: bold;"
+End Sub
+
+Private Sub InputStyle As String
+	Return "-fx-background-color: white; -fx-border-color: #CBD5E1; -fx-border-radius: 7; -fx-background-radius: 7; -fx-font-size: 14px;"
+End Sub
+
+Private Sub ComboStyle As String
+	Return "-fx-background-color: white; -fx-border-color: #CBD5E1; -fx-border-radius: 7; -fx-background-radius: 7; -fx-font-size: 14px;"
+End Sub
